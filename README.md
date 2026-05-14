@@ -63,7 +63,7 @@ The generated config includes a `zones` map and starter `targets`. Adjust the `t
 
 Local files such as `.env` and `passfinder.config.json` are ignored by git so your secrets and trip details do not get pushed to GitHub.
 
-## Example Config
+### Example Config
 
 `init-config` writes the full zone map for the selected permit. After that, the main fields you usually edit are `group_size`, `check_interval`, `availability_link`, and `targets`.
 
@@ -120,18 +120,6 @@ The `watch` command prints one row for each configured date and zone, then sends
 
 ![PassFinder watch output showing one available Granite Lower permit target](docs/images/passfinder-watch-output.svg)
 
-```text
-Watching 3 targets every 10 minutes. Press Ctrl+C to stop.
-Date        Zone             Status     Parties  People  Reason
-----------  ---------------  ---------  -------  ------  ------------------------
-2026-07-27  Granite Lower    AVAILABLE  1/1      6/6     Available
-2026-07-28  #1 Wilcox Point  closed     0/0      0/0     No party quota remaining
-2026-07-29  #1 Wilcox Point  closed     0/0      0/0     No party quota remaining
-
-1 available target(s) found.
-Sent Mailjet notification for 1 new match(es).
-```
-
 ## Example Email Alert
 
 When `mailjet.enabled` is `true`, `watch` sends an email only for newly discovered matches during that run.
@@ -148,7 +136,7 @@ PassFinder found availability:
 Open Recreation.gov: https://www.recreation.gov/permits/4675342/registration/detailed-availability?date=2026-07-27
 ```
 
-## Command Reference
+## Useful Commands
 
 Search Recreation.gov permits by park or permit name:
 
@@ -180,22 +168,6 @@ Print bundled fallback camp-area IDs:
 python -m passfinder zones
 ```
 
-## Tests
-
-```sh
-python -m unittest discover -s tests
-```
-
-## Availability Rules
-
-A target is treated as available when Recreation.gov reports:
-
-- `ConstantQuotaUsageDaily.remaining > 0`
-- `QuotaUsageByMemberDaily.remaining >= group_size`
-- neither quota row is hidden
-
-If People has quota remaining but Parties is `0`, PassFinder treats the target as unavailable.
-
 ## Ethics and Boundaries
 
 PassFinder is meant to make cancellation checking less tedious, not to jump the line or automate the reservation process.
@@ -206,28 +178,12 @@ PassFinder is meant to make cancellation checking less tedious, not to jump the 
 - It only reads public availability data and points you back to Recreation.gov to complete any booking yourself.
 - Use a reasonable `check_interval` so your watcher is helpful without being noisy or abusive.
 
-## Recreation.gov API Notes
+## Implementation Notes
 
-PassFinder uses the same Recreation.gov JSON endpoints that power the public permit availability pages.
+PassFinder uses Recreation.gov frontend availability endpoints, which may change over time. See [CONTRIBUTING.md](CONTRIBUTING.md) for availability rules, API notes, and testing details.
 
-During setup, `init-config` calls the permit content endpoint once to find camp-area zones for the selected permit:
+## Contributing
 
-```text
-https://www.recreation.gov/api/permitcontent/{permit_id}
-```
-
-It saves those zone names and IDs into `passfinder.config.json`. Regular `check` and `watch` runs use the saved config and do not refetch zone metadata.
-
-During checks, PassFinder calls the permit itinerary availability endpoint for each zone/month it needs:
-
-```text
-https://www.recreation.gov/api/permititinerary/{permit_id}/division/{zone_id}/availability/month?month={month}&year={year}&commercial=false
-```
-
-These Recreation.gov frontend endpoints are not the same as the officially documented RIDB API, so they may change. The API-specific code is isolated in `passfinder/permit_search.py`, `passfinder/permit_content.py`, and `passfinder/recreation.py`.
-
-# Contributing
-
-We welcome contributions! Please see our [contributing instructions](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see our [contributing instructions](CONTRIBUTING.md) for setup, testing, and technical notes.
 
 If you have a feature request or find a bug, please [submit an issue](https://github.com/yourusername/PassFinder/issues) on GitHub.
