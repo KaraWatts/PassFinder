@@ -11,6 +11,7 @@ from .config_init import DEFAULT_END_DATE, DEFAULT_PERMIT_ID, DEFAULT_START_DATE
 from .known_zones import KNOWN_ZONES
 from .mailjet import MailjetError, MailjetNotifier
 from .permit_content import PermitContentClient, PermitContentError
+from .permit_search import PermitSearchClient, PermitSearchError, PermitSearchResult
 from .recreation import AvailabilityResult, RecreationClient, RecreationError, check_availability
 
 
@@ -24,11 +25,20 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "init-config":
             return run_init_config(args)
+        if args.command == "search-permits":
+            return run_search_permits(args)
         if args.command == "check":
             return run_check(args)
         if args.command == "watch":
             return run_watch(args)
-    except (ConfigError, RecreationError, PermitContentError, MailjetError, KeyboardInterrupt) as exc:
+    except (
+        ConfigError,
+        RecreationError,
+        PermitContentError,
+        PermitSearchError,
+        MailjetError,
+        KeyboardInterrupt,
+    ) as exc:
         if isinstance(exc, KeyboardInterrupt):
             print("\nStopped.", file=sys.stderr)
         else:
@@ -60,12 +70,25 @@ def build_parser() -> argparse.ArgumentParser:
     init_config.add_argument("--yes", action="store_true", help="Use defaults for missing prompts")
     init_config.add_argument("--force", action="store_true", help="Overwrite an existing config file")
 
+    search_permits = subparsers.add_parser("search-permits", help="Search Recreation.gov permits")
+    search_permits.add_argument("query", help="Park or permit search text")
+    search_permits.add_argument("--limit", type=int, default=10, help="Maximum results to print")
+
     subparsers.add_parser("zones", help="Print known zone names and IDs")
     return parser
 
 
+def run_search_permits(args: argparse.Namespace) -> int:
+    if args.limit < 1:
+        raise ConfigError("search-permits limit must be at least 1")
+
+    results = PermitSearchClient().search(args.query, args.limit)
+    print_permit_search_results(results)
+    return 0
+
+
 def run_init_config(args: argparse.Namespace) -> int:
-    permit_id = _prompt_value(args.permit_id, "Permit ID", DEFAULT_PERMIT_ID, args.yes)
+    permit_id = _resolve_init_permit_id(args.permit_id, args.yes)
     start_date_text = _prompt_value(
         args.start_date,
         "Start date",
@@ -112,6 +135,28 @@ def run_init_config(args: argparse.Namespace) -> int:
 
     print(f"Wrote starter config to {path}")
     return 0
+
+
+def _resolve_init_permit_id(value: str | None, use_default: bool) -> str:
+    if value is not None:
+        return value
+    if use_default:
+        return DEFAULT_PERMIT_ID
+
+    query = _prompt_value(None, "Search park or permit name", "Grand Teton", False)
+    results = PermitSearchClient().search(query, 10)
+    if not results:
+        return _prompt_value(None, "Permit ID", DEFAULT_PERMIT_ID, False)
+
+    print_numbered_permit_results(results)
+    choice = input("Choose permit number or enter permit ID [1]: ").strip()
+    if not choice:
+        return results[0].permit_id
+    if choice.isdigit():
+        index = int(choice)
+        if 1 <= index <= len(results):
+            return results[index - 1].permit_id
+    return choice
 
 
 def _prompt_value(value: str | None, label: str, default: str, use_default: bool) -> str:
@@ -185,6 +230,55 @@ def send_notifications(config, matches: list[AvailabilityResult]) -> None:
 def print_zones() -> None:
     for name, zone_id in sorted(KNOWN_ZONES.items()):
         print(f"{zone_id}  {name}")
+
+
+def print_permit_search_results(results: list[PermitSearchResult]) -> None:
+    if not results:
+        print("No permit results found.")
+        return
+
+    headers = ("Permit ID", "Name", "Park/Area", "Location")
+    rows = [
+        (
+            result.permit_id,
+            result.name,
+            result.parent_name,
+            result.location,
+        )
+        for result in results
+    ]
+    widths = [len(header) for header in headers]
+    for row in rows:
+        for index, cell in enumerate(row):
+            widths[index] = max(widths[index], len(cell))
+
+    print("  ".join(header.ljust(widths[index]) for index, header in enumerate(headers)))
+    print("  ".join("-" * width for width in widths))
+    for row in rows:
+        print("  ".join(cell.ljust(widths[index]) for index, cell in enumerate(row)))
+
+
+def print_numbered_permit_results(results: list[PermitSearchResult]) -> None:
+    headers = ("#", "Permit ID", "Name", "Park/Area", "Location")
+    rows = [
+        (
+            str(index),
+            result.permit_id,
+            result.name,
+            result.parent_name,
+            result.location,
+        )
+        for index, result in enumerate(results, start=1)
+    ]
+    widths = [len(header) for header in headers]
+    for row in rows:
+        for index, cell in enumerate(row):
+            widths[index] = max(widths[index], len(cell))
+
+    print("  ".join(header.ljust(widths[index]) for index, header in enumerate(headers)))
+    print("  ".join("-" * width for width in widths))
+    for row in rows:
+        print("  ".join(cell.ljust(widths[index]) for index, cell in enumerate(row)))
 
 
 def print_results(results: Iterable[AvailabilityResult]) -> None:

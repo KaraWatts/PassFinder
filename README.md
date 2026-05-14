@@ -1,96 +1,59 @@
 # PassFinder
 
-PassFinder is a local Python CLI that checks Recreation.gov permit availability using search criteria you define in `passfinder.config.json`. It can send Mailjet email alerts when matching passes become available.
+PassFinder is a local Python CLI that checks Recreation.gov permit availability using search criteria saved in `passfinder.config.json`. It can send Mailjet email alerts when matching passes become available.
 
-The app only monitors availability and links you to Recreation.gov. It does not log in, reserve, or automate checkout.
+PassFinder only monitors availability and links you to Recreation.gov. It does not log in, reserve permits, or automate checkout.
 
-## Recreation.gov API Usage
+## Requirements
 
-PassFinder uses the same Recreation.gov JSON endpoints that power the public permit availability pages.
+- Python 3.10 or newer
+- Internet access for Recreation.gov availability checks
+- A Mailjet account if you want email alerts
+- A verified Mailjet sender address
 
-During setup, `init-config` calls the permit content endpoint once to find camp-area zones for the configured permit:
-
-```text
-https://www.recreation.gov/api/permitcontent/{permit_id}
-```
-
-Find permit pages and IDs by searching Recreation.gov:
-https://www.recreation.gov/search
-
-The permit ID is the number in a permit page URL, such as `4675342` in `https://www.recreation.gov/permits/4675342`.
-
-It saves those zone names and IDs into `passfinder.config.json`. Regular `check` and `watch` runs do not refetch zone metadata.
-
-During checks, PassFinder calls the permit itinerary availability endpoint for each zone/month it needs:
-
-```text
-https://www.recreation.gov/api/permititinerary/{permit_id}/division/{zone_id}/availability/month?month={month}&year={year}&commercial=false
-```
-
-These Recreation.gov frontend endpoints are not the same as the officially documented RIDB API, so they may change. The app keeps the API logic isolated in `passfinder/permit_content.py` and `passfinder/recreation.py`.
+No third-party Python packages are required.
 
 ## Setup
 
-Use Python 3.10 or newer. No third-party packages are required.
+1. Create and activate a virtual environment:
 
-Copy the example env file and fill in your local Mailjet values:
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+2. Create your local environment file:
 
 ```sh
 cp .env.example .env
 ```
 
-Generate a starter config interactively:
+3. Edit `.env` with your Mailjet values:
+
+```sh
+MAILJET_API_KEY=your-mailjet-api-key
+MAILJET_API_SECRET=your-mailjet-api-secret
+MAILJET_FROM_EMAIL=sender@example.com
+MAILJET_FROM_NAME=PassFinder
+MAILJET_TO_EMAIL=recipient@example.com
+MAILJET_TO_NAME=Permit Watcher
+```
+
+4. Generate your local PassFinder config:
 
 ```sh
 python -m passfinder init-config
 ```
 
-`init-config` asks for the permit ID, trip dates, group size, and polling interval. It fetches the permit's camp-area zones once and saves them into `passfinder.config.json`. Regular `check` and `watch` runs use the saved config and do not refetch zone metadata.
+`init-config` asks for a park or permit name, shows matching Recreation.gov permits, and lets you choose one. It then asks for trip dates, group size, and polling interval. It fetches the permit's camp-area zones once and saves them into `passfinder.config.json`.
 
-`passfinder.config.json` is ignored by git so your dates, zones, group size, and other local search criteria do not get pushed to GitHub.
+5. Edit `passfinder.config.json` if needed.
 
-Mailjet addresses and API credentials belong in `.env`; the JSON config only needs `mailjet.enabled`.
+The generated config includes a `zones` map and starter `targets`. Adjust the `targets` list to the dates and zones you want to watch.
 
-Set:
+Local files such as `.env` and `passfinder.config.json` are ignored by git so your secrets and trip details do not get pushed to GitHub.
 
-```sh
-MAILJET_API_KEY="your-mailjet-api-key"
-MAILJET_API_SECRET="your-mailjet-api-secret"
-MAILJET_FROM_EMAIL="sender@example.com"
-MAILJET_FROM_NAME="PassFinder"
-MAILJET_TO_EMAIL="recipient@example.com"
-MAILJET_TO_NAME="Permit Watcher"
-```
-
-The sender address must be verified in Mailjet.
-
-## Commands
-
-Print known camp-area IDs:
-
-```sh
-python -m passfinder zones
-```
-
-The known zone list is maintained in `passfinder/known_zones.py`.
-
-Create or overwrite a starter config:
-
-```sh
-python -m passfinder init-config --force
-```
-
-Use defaults without prompts:
-
-```sh
-python -m passfinder init-config --yes
-```
-
-Script setup with explicit values:
-
-```sh
-python -m passfinder init-config --permit-id 4675342 --start-date 2026-08-15 --end-date 2026-08-18
-```
+## Usage
 
 Run one availability check:
 
@@ -110,6 +73,38 @@ Watch continuously and email only when new available passes are found during the
 python -m passfinder watch --config passfinder.config.json
 ```
 
+## Command Reference
+
+Search Recreation.gov permits by park or permit name:
+
+```sh
+python -m passfinder search-permits "Grand Teton"
+```
+
+Create or overwrite a starter config:
+
+```sh
+python -m passfinder init-config --force
+```
+
+Use default setup values without prompts:
+
+```sh
+python -m passfinder init-config --yes
+```
+
+Script setup with explicit values:
+
+```sh
+python -m passfinder init-config --permit-id 4675342 --start-date 2026-08-15 --end-date 2026-08-18
+```
+
+Print bundled fallback camp-area IDs:
+
+```sh
+python -m passfinder zones
+```
+
 ## Tests
 
 ```sh
@@ -124,5 +119,27 @@ A target is treated as available when Recreation.gov reports:
 - `QuotaUsageByMemberDaily.remaining >= group_size`
 - neither quota row is hidden
 
-Recreation.gov page:
-https://www.recreation.gov/permits/4675342/registration/detailed-availability?date=2026-08-15
+If People has quota remaining but Parties is `0`, PassFinder treats the target as unavailable.
+
+## Recreation.gov API Notes
+
+PassFinder uses the same Recreation.gov JSON endpoints that power the public permit availability pages.
+
+During setup, `init-config` calls the permit content endpoint once to find camp-area zones for the selected permit:
+
+```text
+https://www.recreation.gov/api/permitcontent/{permit_id}
+```
+
+It saves those zone names and IDs into `passfinder.config.json`. Regular `check` and `watch` runs use the saved config and do not refetch zone metadata.
+
+During checks, PassFinder calls the permit itinerary availability endpoint for each zone/month it needs:
+
+```text
+https://www.recreation.gov/api/permititinerary/{permit_id}/division/{zone_id}/availability/month?month={month}&year={year}&commercial=false
+```
+
+These Recreation.gov frontend endpoints are not the same as the officially documented RIDB API, so they may change. The API-specific code is isolated in `passfinder/permit_search.py`, `passfinder/permit_content.py`, and `passfinder/recreation.py`.
+
+You can also search manually on Recreation.gov:
+https://www.recreation.gov/search
