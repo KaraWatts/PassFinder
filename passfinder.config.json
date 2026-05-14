@@ -1,0 +1,69 @@
+{
+  "permit_id": "4675342",
+  "group_size": 1,
+  "poll_minutes": 10,
+  "availability_link": "https://www.recreation.gov/permits/4675342/registration/detailed-availability?date=2026-07-26",
+  "mailjet": {
+    "enabled": true,
+    "from_email": "",
+    "from_name": "",
+    "to_email": "",
+    "to_name": ""
+  },
+  "targets": [
+    {
+      "date": "2026-07-26",
+      "zones": [
+        "Death Canyon Shelf",
+        "Cascade North Fork",
+        "Cascade South Fork",
+        "Paintbrush Upper"
+      ]
+    },
+    {
+      "date": "2026-07-27",
+      "zones": [
+        "Death Canyon Shelf",
+        "Cascade North Fork",
+        "Cascade South Fork",
+        "Paintbrush Upper"
+      ]
+    },
+    {
+      "date": "2026-07-28",
+      "zones": [
+        "Death Canyon Shelf",
+        "Cascade North Fork",
+        "Cascade South Fork",
+        "Paintbrush Upper"
+      ]
+    },
+    {
+      "date": "2026-07-29",
+      "zones": [
+        "Death Canyon Shelf",
+        "Cascade North Fork",
+        "Cascade South Fork",
+        "Paintbrush Upper"
+      ]
+    },
+    {
+      "date": "2026-07-30",
+      "zones": [
+        "Death Canyon Shelf",
+        "Cascade North Fork",
+        "Cascade South Fork",
+        "Paintbrush Upper"
+      ]
+    },
+    {
+      "date": "2026-07-31",
+      "zones": [
+        "Death Canyon Shelf",
+        "Cascade North Fork",
+        "Cascade South Fork",
+        "Paintbrush Upper"
+      ]
+    }
+  ]
+}
