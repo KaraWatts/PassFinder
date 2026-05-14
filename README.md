@@ -1,5 +1,11 @@
 # PassFinder
 
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![No Runtime Dependencies](https://img.shields.io/badge/runtime_dependencies-none-brightgreen)
+![License](https://img.shields.io/github/license/KaraWatts/PassFinder)
+![Tests](https://github.com/KaraWatts/PassFinder/actions/workflows/python-app.yml/badge.svg)
+
+
 PassFinder watches Recreation.gov permit availability for the exact dates, zones, and group size you care about, then alerts you when a matching opening appears.
 
 It is a local Python CLI tool built for high-demand permits where the official release window is not the only chance to get outside. Save your trip criteria in `passfinder.config.json`, run a one-time check or continuous watcher, and optionally receive email alerts when cancellations create a new opportunity.
