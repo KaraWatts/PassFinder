@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1768" height="485" viewBox="0 0 1768 485" role="img" aria-labelledby="title desc">
+  <title id="title">PassFinder terminal output</title>
+  <desc id="desc">Terminal output from PassFinder watch showing one available target and a sent Mailjet notification.</desc>
+  <rect width="1768" height="485" fill="#1f1f1f"/>
+  <text x="38" y="45" fill="#12a8df" font-family="Menlo, Consolas, monospace" font-size="34" font-weight="700">~/Repos/PassFinder</text>
+  <text x="493" y="45" fill="#67e22f" font-family="Menlo, Consolas, monospace" font-size="34" font-weight="700">main</text>
+  <text x="595" y="45" fill="#f5c400" font-family="Menlo, Consolas, monospace" font-size="34" font-weight="700">!1</text>
+  <text x="649" y="45" fill="#1bb5ff" font-family="Menlo, Consolas, monospace" font-size="34" font-weight="700">?2</text>
+  <text x="97" y="87" fill="#66e64d" font-family="Menlo, Consolas, monospace" font-size="34">python</text>
+  <text x="228" y="87" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">-m passfinder watch --config passfinder.config.json</text>
+  <text x="38" y="129" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">Watching 3 targets every 10 minutes. Press Ctrl+C to stop.</text>
+  <text x="38" y="171" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">Date       Zone            Status     Parties  People  Reason</text>
+  <text x="38" y="213" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">---------- --------------- ---------- -------  ------  --------------------------</text>
+  <text x="38" y="255" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">2026-07-27 Granite Lower   AVAILABLE  1/1      6/6     Available</text>
+  <text x="38" y="297" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">2026-07-28 #1 Wilcox Point closed     0/0      0/0     No party quota remaining</text>
+  <text x="38" y="339" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">2026-07-29 #1 Wilcox Point closed     0/0      0/0     No party quota remaining</text>
+  <text x="38" y="423" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">1 available target(s) found.</text>
+  <text x="38" y="465" fill="#d0d0d0" font-family="Menlo, Consolas, monospace" font-size="34">Sent Mailjet notification for 1 new match(es).</text>
+</svg>

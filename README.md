@@ -1,8 +1,18 @@
 # PassFinder
 
-PassFinder is a local Python CLI that checks Recreation.gov permit availability using search criteria saved in `passfinder.config.json`. It can send Mailjet email alerts when matching passes become available.
+PassFinder watches Recreation.gov permit availability for the exact dates, zones, and group size you care about, then alerts you when a matching opening appears.
+
+It is a local Python CLI tool built for high-demand permits where the official release window is not the only chance to get outside. Save your trip criteria in `passfinder.config.json`, run a one-time check or continuous watcher, and optionally receive email alerts when cancellations create a new opportunity.
 
 PassFinder only monitors availability and links you to Recreation.gov. It does not log in, reserve permits, or automate checkout.
+
+## Background
+
+PassFinder started with a real trip problem: my best friend and I were planning a backpacking route through Grand Teton National Park, but the advance backcountry permits were gone before we could reserve the itinerary we wanted.
+
+That left us with the usual backup plan: keep checking Recreation.gov, hope someone cancels, or gamble on walk-up permits after we were already committed to the trip. None of those options were especially reassuring when the route depended on specific camp zones lining up across multiple nights.
+
+So I built PassFinder to turn that anxious refresh loop into a focused watchlist. Instead of manually checking every date and camp area, PassFinder monitors the targets that would actually make the trip work and sends an alert when Recreation.gov reports enough remaining quota. It keeps the final booking step in your hands, but helps you notice the narrow window when a canceled permit becomes available.
 
 ## Requirements
 
@@ -53,6 +63,37 @@ The generated config includes a `zones` map and starter `targets`. Adjust the `t
 
 Local files such as `.env` and `passfinder.config.json` are ignored by git so your secrets and trip details do not get pushed to GitHub.
 
+## Example Config
+
+`init-config` writes the full zone map for the selected permit. After that, the main fields you usually edit are `group_size`, `check_interval`, `availability_link`, and `targets`.
+
+```json
+{
+  "permit_id": "4675342",
+  "group_size": 2,
+  "check_interval": 10,
+  "availability_link": "https://www.recreation.gov/permits/4675342/registration/detailed-availability?date=2026-08-15",
+  "mailjet": {
+    "enabled": true
+  },
+  "zones": {
+    "Cascade North Fork": "4675342027",
+    "Death Canyon Shelf": "4675342030",
+    "Paintbrush Upper": "4675342041"
+  },
+  "targets": [
+    {
+      "date": "2026-08-15",
+      "zones": ["Cascade North Fork"]
+    },
+    {
+      "date": "2026-08-16",
+      "zones": ["Death Canyon Shelf", "Paintbrush Upper"]
+    }
+  ]
+}
+```
+
 ## Usage
 
 Run one availability check:
@@ -71,6 +112,40 @@ Watch continuously and email only when new available passes are found during the
 
 ```sh
 python -m passfinder watch --config passfinder.config.json
+```
+
+## Example Output
+
+The `watch` command prints one row for each configured date and zone, then sends a Mailjet notification when a new match appears during the run.
+
+![PassFinder watch output showing one available Granite Lower permit target](docs/images/passfinder-watch-output.svg)
+
+```text
+Watching 3 targets every 10 minutes. Press Ctrl+C to stop.
+Date        Zone             Status     Parties  People  Reason
+----------  ---------------  ---------  -------  ------  ------------------------
+2026-07-27  Granite Lower    AVAILABLE  1/1      6/6     Available
+2026-07-28  #1 Wilcox Point  closed     0/0      0/0     No party quota remaining
+2026-07-29  #1 Wilcox Point  closed     0/0      0/0     No party quota remaining
+
+1 available target(s) found.
+Sent Mailjet notification for 1 new match(es).
+```
+
+## Example Email Alert
+
+When `mailjet.enabled` is `true`, `watch` sends an email only for newly discovered matches during that run.
+
+![PassFinder email alert showing a Granite Lower availability match](docs/images/passfinder-email-alert.svg)
+
+```text
+Subject: PassFinder: 1 camp zone availability match
+
+PassFinder found availability:
+
+2026-07-27 - Granite Lower: 1/1 parties, 6/6 people remaining
+
+Open Recreation.gov: https://www.recreation.gov/permits/4675342/registration/detailed-availability?date=2026-07-27
 ```
 
 ## Command Reference
@@ -121,6 +196,16 @@ A target is treated as available when Recreation.gov reports:
 
 If People has quota remaining but Parties is `0`, PassFinder treats the target as unavailable.
 
+## Ethics and Boundaries
+
+PassFinder is meant to make cancellation checking less tedious, not to jump the line or automate the reservation process.
+
+- It does not log in to Recreation.gov.
+- It does not reserve, hold, or purchase permits.
+- It does not automate checkout or bypass user decisions.
+- It only reads public availability data and points you back to Recreation.gov to complete any booking yourself.
+- Use a reasonable `check_interval` so your watcher is helpful without being noisy or abusive.
+
 ## Recreation.gov API Notes
 
 PassFinder uses the same Recreation.gov JSON endpoints that power the public permit availability pages.
@@ -141,5 +226,8 @@ https://www.recreation.gov/api/permititinerary/{permit_id}/division/{zone_id}/av
 
 These Recreation.gov frontend endpoints are not the same as the officially documented RIDB API, so they may change. The API-specific code is isolated in `passfinder/permit_search.py`, `passfinder/permit_content.py`, and `passfinder/recreation.py`.
 
-You can also search manually on Recreation.gov:
-https://www.recreation.gov/search
+# Contributing
+
+We welcome contributions! Please see our [contributing instructions](CONTRIBUTING.md) for guidelines.
+
+If you have a feature request or find a bug, please [submit an issue](https://github.com/yourusername/PassFinder/issues) on GitHub.
