@@ -15,7 +15,7 @@ class ConfigTests(unittest.TestCase):
         raw_config = {
             "permit_id": "4675342",
             "group_size": 1,
-            "poll_minutes": 10,
+            "check_interval": 10,
             "availability_link": "https://www.recreation.gov/example",
             "mailjet": {
                 "enabled": True
@@ -56,7 +56,7 @@ class ConfigTests(unittest.TestCase):
         raw_config = {
             "permit_id": "12345",
             "group_size": 1,
-            "poll_minutes": 10,
+            "check_interval": 10,
             "availability_link": "https://www.recreation.gov/example",
             "mailjet": {"enabled": False},
             "zones": {
@@ -82,7 +82,7 @@ class ConfigTests(unittest.TestCase):
     def test_missing_permit_id_fails_clearly(self):
         raw_config = {
             "group_size": 1,
-            "poll_minutes": 10,
+            "check_interval": 10,
             "availability_link": "https://www.recreation.gov/example",
             "mailjet": {"enabled": False},
             "zones": {

@@ -102,7 +102,7 @@ def run_init_config(args: argparse.Namespace) -> int:
         args.yes,
     )
     group_size = _prompt_int(args.group_size, "Group size", 1, args.yes)
-    poll_minutes = _prompt_int(args.poll_minutes, "Poll minutes", 10, args.yes)
+    check_interval = _prompt_int(args.poll_minutes, "Check interval (minutes)", 10, args.yes)
 
     try:
         start_date = date.fromisoformat(start_date_text)
@@ -114,8 +114,8 @@ def run_init_config(args: argparse.Namespace) -> int:
         raise ConfigError("init-config end date must be on or after start date")
     if group_size < 1:
         raise ConfigError("init-config group size must be at least 1")
-    if poll_minutes < 1:
-        raise ConfigError("init-config poll minutes must be at least 1")
+    if check_interval < 1:
+        raise ConfigError("init-config check interval must be at least 1")
 
     zones = PermitContentClient().fetch_zones(permit_id)
 
@@ -127,7 +127,7 @@ def run_init_config(args: argparse.Namespace) -> int:
             start_date=start_date,
             end_date=end_date,
             group_size=group_size,
-            poll_minutes=poll_minutes,
+            check_interval=check_interval,
             force=args.force,
         )
     except FileExistsError as exc:
@@ -197,7 +197,7 @@ def run_watch(args: argparse.Namespace) -> int:
     client = RecreationClient()
     notifier = MailjetNotifier()
 
-    print(f"Watching {len(config.targets)} targets every {config.poll_minutes} minutes. Press Ctrl+C to stop.")
+    print(f"Watching {len(config.targets)} targets every {config.check_interval} minutes. Press Ctrl+C to stop.")
     while True:
         results = check_availability(config, client)
         print_results(results)
@@ -213,7 +213,7 @@ def run_watch(args: argparse.Namespace) -> int:
         else:
             print("No new availability alerts.")
 
-        time.sleep(config.poll_minutes * 60)
+            time.sleep(config.check_interval * 60)
 
 
 def send_notifications(config, matches: list[AvailabilityResult]) -> None:

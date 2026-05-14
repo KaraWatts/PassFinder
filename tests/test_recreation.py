@@ -71,7 +71,7 @@ class RecreationTests(unittest.TestCase):
         config = AppConfig(
             permit_id="4675342",
             group_size=1,
-            poll_minutes=10,
+            check_interval=10,
             availability_link="https://example.com",
             mailjet=MailjetConfig(True, "from@example.com", "PassFinder", "to@example.com", "Watcher"),
             zones={"Death Canyon Shelf": "4675342030"},

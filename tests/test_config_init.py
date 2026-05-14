@@ -16,11 +16,11 @@ class ConfigInitTests(unittest.TestCase):
             start_date=date(2026, 8, 15),
             end_date=date(2026, 8, 16),
             group_size=2,
-            poll_minutes=5,
+            check_interval=5,
         )
 
         self.assertEqual(config["group_size"], 2)
-        self.assertEqual(config["poll_minutes"], 5)
+        self.assertEqual(config["check_interval"], 5)
         self.assertEqual([target["date"] for target in config["targets"]], ["2026-08-15", "2026-08-16"])
         self.assertEqual(config["targets"][0]["zones"], ["First Zone"])
 

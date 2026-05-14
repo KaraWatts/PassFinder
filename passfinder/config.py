@@ -34,7 +34,7 @@ class Target:
 class AppConfig:
     permit_id: str
     group_size: int
-    poll_minutes: int
+    check_interval: int
     availability_link: str
     mailjet: MailjetConfig
     zones: dict[str, str]
@@ -56,12 +56,12 @@ def load_config(path: str | Path) -> AppConfig:
     try:
         permit_id = str(raw["permit_id"]).strip()
         group_size = int(raw.get("group_size", 1))
-        poll_minutes = int(raw.get("poll_minutes", 10))
+        check_interval = int(raw.get("check_interval", 10))
         availability_link = str(raw["availability_link"]).strip()
     except KeyError as exc:
         raise ConfigError(f"Missing required config field: {exc.args[0]}") from exc
     except (TypeError, ValueError) as exc:
-        raise ConfigError("permit_id, availability_link, group_size, and poll_minutes must be valid values") from exc
+        raise ConfigError("permit_id, availability_link, group_size, and check_interval must be valid values") from exc
 
     if not permit_id:
         raise ConfigError("permit_id must not be blank")
@@ -69,8 +69,8 @@ def load_config(path: str | Path) -> AppConfig:
         raise ConfigError("availability_link must not be blank")
     if group_size < 1:
         raise ConfigError("group_size must be at least 1")
-    if poll_minutes < 1:
-        raise ConfigError("poll_minutes must be at least 1")
+    if check_interval < 1:
+        raise ConfigError("check_interval must be at least 1")
 
     mailjet = _load_mailjet(raw.get("mailjet", {}))
     zones = _load_zones(raw.get("zones", KNOWN_ZONES))
@@ -81,7 +81,7 @@ def load_config(path: str | Path) -> AppConfig:
     return AppConfig(
         permit_id=permit_id,
         group_size=group_size,
-        poll_minutes=poll_minutes,
+        check_interval=check_interval,
         availability_link=availability_link,
         mailjet=mailjet,
         zones=zones,

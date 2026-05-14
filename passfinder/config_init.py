@@ -18,7 +18,7 @@ def build_starter_config(
     start_date: date = DEFAULT_START_DATE,
     end_date: date = DEFAULT_END_DATE,
     group_size: int = 1,
-    poll_minutes: int = 10,
+        check_interval: int = 10,
 ) -> dict:
     zone_map = dict(zones or KNOWN_ZONES)
     default_zones = list(zone_map)[:1]
@@ -26,7 +26,7 @@ def build_starter_config(
     return {
         "permit_id": permit_id,
         "group_size": group_size,
-        "poll_minutes": poll_minutes,
+            "check_interval": check_interval,
         "availability_link": _availability_link(permit_id, start_date),
         "mailjet": {
             "enabled": True,
@@ -49,7 +49,7 @@ def write_starter_config(
     start_date: date = DEFAULT_START_DATE,
     end_date: date = DEFAULT_END_DATE,
     group_size: int = 1,
-    poll_minutes: int = 10,
+        check_interval: int = 10,
     force: bool = False,
 ) -> Path:
     config_path = Path(path)
@@ -62,7 +62,7 @@ def write_starter_config(
         start_date=start_date,
         end_date=end_date,
         group_size=group_size,
-        poll_minutes=poll_minutes,
+            check_interval=check_interval,
     )
     config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     return config_path

@@ -66,7 +66,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(config["permit_id"], "4675342")
         self.assertEqual(config["group_size"], 3)
-        self.assertEqual(config["poll_minutes"], 15)
+        self.assertEqual(config["check_interval"], 15)
         self.assertEqual([target["date"] for target in config["targets"]], ["2026-09-01", "2026-09-02"])
 
     def test_init_config_accepts_manual_permit_id_when_search_has_no_results(self):
