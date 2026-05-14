@@ -7,27 +7,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-
-PERMIT_ID = "4675342"
-AVAILABILITY_LINK = (
-    "https://www.recreation.gov/permits/4675342/registration/"
-    "detailed-availability?date=2026-07-26"
-)
-
-KNOWN_ZONES = {
-    "Death Canyon Shelf": "4675342030",
-    "Cascade North Fork": "4675342027",
-    "Cascade South Fork": "4675342028",
-    "Paintbrush Upper": "4675342041",
-    "Paintbrush Lower": "4675342040",
-}
-
-DEFAULT_ZONE_NAMES = (
-    "Death Canyon Shelf",
-    "Cascade North Fork",
-    "Cascade South Fork",
-    "Paintbrush Upper",
-)
+from .known_zones import KNOWN_ZONES
 
 
 class ConfigError(ValueError):
@@ -57,6 +37,7 @@ class AppConfig:
     poll_minutes: int
     availability_link: str
     mailjet: MailjetConfig
+    zones: dict[str, str]
     targets: tuple[Target, ...]
 
 
@@ -64,25 +45,36 @@ def load_config(path: str | Path) -> AppConfig:
     load_env_files()
     config_path = Path(path)
     if not config_path.exists():
-        raise ConfigError(f"Config file not found: {config_path}")
+        raise ConfigError(
+            f"Config file not found: {config_path}. "
+            "Copy passfinder.config.example.json to passfinder.config.json and adjust it."
+        )
 
     with config_path.open("r", encoding="utf-8") as handle:
         raw = json.load(handle)
 
     try:
-        permit_id = str(raw.get("permit_id", PERMIT_ID))
+        permit_id = str(raw["permit_id"]).strip()
         group_size = int(raw.get("group_size", 1))
         poll_minutes = int(raw.get("poll_minutes", 10))
+        availability_link = str(raw["availability_link"]).strip()
+    except KeyError as exc:
+        raise ConfigError(f"Missing required config field: {exc.args[0]}") from exc
     except (TypeError, ValueError) as exc:
-        raise ConfigError("permit_id, group_size, and poll_minutes must be valid values") from exc
+        raise ConfigError("permit_id, availability_link, group_size, and poll_minutes must be valid values") from exc
 
+    if not permit_id:
+        raise ConfigError("permit_id must not be blank")
+    if not availability_link:
+        raise ConfigError("availability_link must not be blank")
     if group_size < 1:
         raise ConfigError("group_size must be at least 1")
     if poll_minutes < 1:
         raise ConfigError("poll_minutes must be at least 1")
 
     mailjet = _load_mailjet(raw.get("mailjet", {}))
-    targets = tuple(_load_targets(raw.get("targets", [])))
+    zones = _load_zones(raw.get("zones", KNOWN_ZONES))
+    targets = tuple(_load_targets(raw.get("targets", []), zones))
     if not targets:
         raise ConfigError("At least one target date/zone must be configured")
 
@@ -90,8 +82,9 @@ def load_config(path: str | Path) -> AppConfig:
         permit_id=permit_id,
         group_size=group_size,
         poll_minutes=poll_minutes,
-        availability_link=str(raw.get("availability_link", AVAILABILITY_LINK)),
+        availability_link=availability_link,
         mailjet=mailjet,
+        zones=zones,
         targets=targets,
     )
 
@@ -137,7 +130,17 @@ def _load_env_file(path: Path) -> None:
                 os.environ[key] = value
 
 
-def _load_targets(raw_targets: list[dict[str, Any]]) -> list[Target]:
+def _load_zones(raw_zones: Any) -> dict[str, str]:
+    if not isinstance(raw_zones, dict):
+        raise ConfigError("zones must be an object mapping zone names to zone IDs")
+    zones = {str(name).strip(): str(zone_id).strip() for name, zone_id in raw_zones.items()}
+    zones = {name: zone_id for name, zone_id in zones.items() if name and zone_id}
+    if not zones:
+        raise ConfigError("zones must include at least one zone")
+    return zones
+
+
+def _load_targets(raw_targets: list[dict[str, Any]], zones_by_name: dict[str, str]) -> list[Target]:
     if not isinstance(raw_targets, list):
         raise ConfigError("targets must be a list")
 
@@ -153,9 +156,9 @@ def _load_targets(raw_targets: list[dict[str, Any]]) -> list[Target]:
 
         for zone in zones:
             zone_name = str(zone).strip()
-            zone_id = KNOWN_ZONES.get(zone_name)
+            zone_id = zones_by_name.get(zone_name)
             if not zone_id:
-                known = ", ".join(sorted(KNOWN_ZONES))
+                known = ", ".join(sorted(zones_by_name))
                 raise ConfigError(f"Unknown zone '{zone_name}'. Known zones: {known}")
             targets.append(Target(date=target_date, zone_name=zone_name, zone_id=zone_id))
 

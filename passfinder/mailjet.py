@@ -33,7 +33,7 @@ class MailjetNotifier:
         if not api_key or not api_secret:
             raise ConfigError("MAILJET_API_KEY and MAILJET_API_SECRET must be set to send email")
         if not config.mailjet.from_email or not config.mailjet.to_email:
-            raise ConfigError("mailjet.from_email and mailjet.to_email must be set in the config")
+            raise ConfigError("MAILJET_FROM_EMAIL and MAILJET_TO_EMAIL must be set to send email")
 
         body = build_payload(config, matches)
         credentials = base64.b64encode(f"{api_key}:{api_secret}".encode("utf-8")).decode("ascii")

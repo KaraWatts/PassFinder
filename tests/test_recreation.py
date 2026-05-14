@@ -74,6 +74,7 @@ class RecreationTests(unittest.TestCase):
             poll_minutes=10,
             availability_link="https://example.com",
             mailjet=MailjetConfig(True, "from@example.com", "PassFinder", "to@example.com", "Watcher"),
+            zones={"Death Canyon Shelf": "4675342030"},
             targets=(
                 TARGET,
                 Target(date=date(2026, 7, 27), zone_name="Death Canyon Shelf", zone_id="4675342030"),

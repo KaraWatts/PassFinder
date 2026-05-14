@@ -3,10 +3,14 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from datetime import date
 from typing import Iterable
 
-from .config import KNOWN_ZONES, ConfigError, load_config
+from .config import ConfigError, load_config
+from .config_init import DEFAULT_END_DATE, DEFAULT_PERMIT_ID, DEFAULT_START_DATE, write_starter_config
+from .known_zones import KNOWN_ZONES
 from .mailjet import MailjetError, MailjetNotifier
+from .permit_content import PermitContentClient, PermitContentError
 from .recreation import AvailabilityResult, RecreationClient, RecreationError, check_availability
 
 
@@ -18,11 +22,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "zones":
             print_zones()
             return 0
+        if args.command == "init-config":
+            return run_init_config(args)
         if args.command == "check":
             return run_check(args)
         if args.command == "watch":
             return run_watch(args)
-    except (ConfigError, RecreationError, MailjetError, KeyboardInterrupt) as exc:
+    except (ConfigError, RecreationError, PermitContentError, MailjetError, KeyboardInterrupt) as exc:
         if isinstance(exc, KeyboardInterrupt):
             print("\nStopped.", file=sys.stderr)
         else:
@@ -44,8 +50,91 @@ def build_parser() -> argparse.ArgumentParser:
     watch = subparsers.add_parser("watch", help="Poll availability and send new-match alerts")
     watch.add_argument("--config", default="passfinder.config.json", help="Path to config JSON")
 
+    init_config = subparsers.add_parser("init-config", help="Create a starter local config file")
+    init_config.add_argument("--config", default="passfinder.config.json", help="Path to write")
+    init_config.add_argument("--permit-id", help="Recreation.gov permit ID")
+    init_config.add_argument("--start-date", help="First target date, YYYY-MM-DD")
+    init_config.add_argument("--end-date", help="Last target date, YYYY-MM-DD")
+    init_config.add_argument("--group-size", type=int, help="Minimum people quota needed")
+    init_config.add_argument("--poll-minutes", type=int, help="Watch polling interval")
+    init_config.add_argument("--yes", action="store_true", help="Use defaults for missing prompts")
+    init_config.add_argument("--force", action="store_true", help="Overwrite an existing config file")
+
     subparsers.add_parser("zones", help="Print known zone names and IDs")
     return parser
+
+
+def run_init_config(args: argparse.Namespace) -> int:
+    permit_id = _prompt_value(args.permit_id, "Permit ID", DEFAULT_PERMIT_ID, args.yes)
+    start_date_text = _prompt_value(
+        args.start_date,
+        "Start date",
+        DEFAULT_START_DATE.isoformat(),
+        args.yes,
+    )
+    end_date_text = _prompt_value(
+        args.end_date,
+        "End date",
+        DEFAULT_END_DATE.isoformat(),
+        args.yes,
+    )
+    group_size = _prompt_int(args.group_size, "Group size", 1, args.yes)
+    poll_minutes = _prompt_int(args.poll_minutes, "Poll minutes", 10, args.yes)
+
+    try:
+        start_date = date.fromisoformat(start_date_text)
+        end_date = date.fromisoformat(end_date_text)
+    except ValueError as exc:
+        raise ConfigError("init-config dates must use YYYY-MM-DD format") from exc
+
+    if end_date < start_date:
+        raise ConfigError("init-config end date must be on or after start date")
+    if group_size < 1:
+        raise ConfigError("init-config group size must be at least 1")
+    if poll_minutes < 1:
+        raise ConfigError("init-config poll minutes must be at least 1")
+
+    zones = PermitContentClient().fetch_zones(permit_id)
+
+    try:
+        path = write_starter_config(
+            path=args.config,
+            permit_id=permit_id,
+            zones=zones,
+            start_date=start_date,
+            end_date=end_date,
+            group_size=group_size,
+            poll_minutes=poll_minutes,
+            force=args.force,
+        )
+    except FileExistsError as exc:
+        raise ConfigError(f"{exc}. Use --force to overwrite it.") from exc
+
+    print(f"Wrote starter config to {path}")
+    return 0
+
+
+def _prompt_value(value: str | None, label: str, default: str, use_default: bool) -> str:
+    if value is not None:
+        return value
+    if use_default:
+        return default
+    response = input(f"{label} [{default}]: ").strip()
+    return response or default
+
+
+def _prompt_int(value: int | None, label: str, default: int, use_default: bool) -> int:
+    if value is not None:
+        return value
+    if use_default:
+        return default
+    response = input(f"{label} [{default}]: ").strip()
+    if not response:
+        return default
+    try:
+        return int(response)
+    except ValueError as exc:
+        raise ConfigError(f"{label} must be an integer") from exc
 
 
 def run_check(args: argparse.Namespace) -> int:

@@ -1,0 +1,39 @@
+{
+  "permit_id": "4675342",
+  "group_size": 1,
+  "poll_minutes": 10,
+  "availability_link": "https://www.recreation.gov/permits/4675342/registration/detailed-availability?date=2026-08-15",
+  "mailjet": {
+    "enabled": true
+  },
+  "zones": {
+    "Death Canyon Shelf": "4675342030",
+    "Paintbrush Upper": "4675342041"
+  },
+  "targets": [
+    {
+      "date": "2026-08-15",
+      "zones": [
+        "Death Canyon Shelf"
+      ]
+    },
+    {
+      "date": "2026-08-16",
+      "zones": [
+        "Death Canyon Shelf"
+      ]
+    },
+    {
+      "date": "2026-08-17",
+      "zones": [
+        "Death Canyon Shelf"
+      ]
+    },
+    {
+      "date": "2026-08-18",
+      "zones": [
+        "Death Canyon Shelf"
+      ]
+    }
+  ]
+}

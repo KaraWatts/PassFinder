@@ -17,6 +17,7 @@ def config():
         poll_minutes=10,
         availability_link="https://www.recreation.gov/example",
         mailjet=MailjetConfig(True, "from@example.com", "PassFinder", "to@example.com", "Watcher"),
+        zones={},
         targets=(),
     )
 
