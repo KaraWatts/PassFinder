@@ -59,7 +59,7 @@ python -m passfinder init-config
 
 5. Edit `passfinder.config.json` if needed.
 
-The generated config includes a `zones` map and starter `targets`. Adjust the `targets` list to the dates and zones you want to watch.
+The generated config includes a `zones` map and starter `targets`. Adjust the `targets` list with the dates and zones you want to watch.
 
 Local files such as `.env` and `passfinder.config.json` are ignored by git so your secrets and trip details do not get pushed to GitHub.
 
