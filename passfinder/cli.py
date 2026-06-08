@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Iterable
 
 from .config import ConfigError, load_config
@@ -199,21 +199,28 @@ def run_watch(args: argparse.Namespace) -> int:
 
     print(f"Watching {len(config.targets)} targets every {config.check_interval} minutes. Press Ctrl+C to stop.")
     while True:
-        results = check_availability(config, client)
-        print_results(results, config.availability_link)
-
-        new_matches = [result for result in results if result.available and result.key not in seen]
-        if new_matches:
-            sent = notifier.send(config, new_matches)
-            seen.update(result.key for result in new_matches)
-            if sent:
-                print(f"Sent Mailjet notification for {len(new_matches)} new match(es).")
-            else:
-                print("Mailjet notifications are disabled; marked new matches as seen.")
+        try:
+            results = check_availability(config, client)
+        except RecreationError as exc:
+            print(f"Availability check failed: {exc}", file=sys.stderr)
         else:
-            print("No new availability alerts.")
+            print_results(results, config.availability_link)
 
-            time.sleep(config.check_interval * 60)
+            new_matches = [result for result in results if result.available and result.key not in seen]
+            if new_matches:
+                sent = notifier.send(config, new_matches)
+                seen.update(result.key for result in new_matches)
+                if sent:
+                    print(f"Sent Mailjet notification for {len(new_matches)} new match(es).")
+                else:
+                    print("Mailjet notifications are disabled; marked new matches as seen.")
+            else:
+                print("No new availability alerts.")
+
+        next_check = datetime.now().astimezone() + timedelta(minutes=config.check_interval)
+        print(f"Next check at: {next_check.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        sys.stdout.flush()
+        time.sleep(config.check_interval * 60)
 
 
 def send_notifications(config, matches: list[AvailabilityResult]) -> None:

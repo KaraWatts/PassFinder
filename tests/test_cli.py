@@ -5,10 +5,11 @@ import tempfile
 import unittest
 from datetime import date, datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from passfinder.cli import main, print_results
-from passfinder.recreation import AvailabilityResult
+from passfinder.cli import main, print_results, run_watch
+from passfinder.recreation import AvailabilityResult, RecreationError
 
 
 class FakePermitContentClient:
@@ -29,6 +30,15 @@ class FakePermitSearchClient:
                 url="https://www.recreation.gov/permits/4675342",
             )
         ]
+
+
+class FakeMailjetNotifier:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, config, matches):
+        self.sent.append((config, matches))
+        return False
 
 
 class CliTests(unittest.TestCase):
@@ -124,6 +134,69 @@ class CliTests(unittest.TestCase):
         self.assertIn("Checked at: 2026-08-15 16:30:45 UTC", printed)
         self.assertIn("1 available target(s) found.", printed)
         self.assertIn(f"Open Recreation.gov: {link}", printed)
+
+    def test_watch_sleeps_after_new_match(self):
+        result = AvailabilityResult(
+            date=date(2026, 8, 15),
+            zone_name="Granite Lower",
+            zone_id="4675342032",
+            available=True,
+            party_remaining=1,
+            people_remaining=6,
+            total_parties=1,
+            total_people=6,
+            season_type="Reservable",
+            reason="Available",
+        )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            config_path = self._write_watch_config(tempdir)
+
+            with patch("passfinder.cli.check_availability", return_value=[result]):
+                with patch("passfinder.cli.MailjetNotifier", return_value=FakeMailjetNotifier()):
+                    with patch("passfinder.cli.time.sleep", side_effect=KeyboardInterrupt) as sleep_mock:
+                        with patch("builtins.print"):
+                            with self.assertRaises(KeyboardInterrupt):
+                                run_watch(SimpleNamespace(config=str(config_path)))
+
+        sleep_mock.assert_called_once_with(600)
+
+    def test_watch_continues_after_availability_error(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            config_path = self._write_watch_config(tempdir)
+
+            with patch("passfinder.cli.check_availability", side_effect=RecreationError("temporary outage")):
+                with patch("passfinder.cli.time.sleep", side_effect=KeyboardInterrupt) as sleep_mock:
+                    with patch("builtins.print"):
+                        with self.assertRaises(KeyboardInterrupt):
+                            run_watch(SimpleNamespace(config=str(config_path)))
+
+        sleep_mock.assert_called_once_with(600)
+
+    def _write_watch_config(self, tempdir):
+        config_path = Path(tempdir) / "passfinder.config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "permit_id": "4675342",
+                    "group_size": 1,
+                    "check_interval": 10,
+                    "availability_link": "https://www.recreation.gov/example",
+                    "mailjet": {"enabled": False},
+                    "zones": {
+                        "Granite Lower": "4675342032"
+                    },
+                    "targets": [
+                        {
+                            "date": "2026-08-15",
+                            "zones": ["Granite Lower"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return config_path
 
 
 if __name__ == "__main__":
