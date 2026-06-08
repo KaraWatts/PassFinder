@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 from typing import Iterable
 
 from .config import ConfigError, load_config
@@ -185,7 +185,7 @@ def _prompt_int(value: int | None, label: str, default: int, use_default: bool) 
 def run_check(args: argparse.Namespace) -> int:
     config = load_config(args.config)
     results = check_availability(config, RecreationClient())
-    print_results(results)
+    print_results(results, config.availability_link)
     if args.notify:
         send_notifications(config, [result for result in results if result.available])
     return 0
@@ -200,7 +200,7 @@ def run_watch(args: argparse.Namespace) -> int:
     print(f"Watching {len(config.targets)} targets every {config.check_interval} minutes. Press Ctrl+C to stop.")
     while True:
         results = check_availability(config, client)
-        print_results(results)
+        print_results(results, config.availability_link)
 
         new_matches = [result for result in results if result.available and result.key not in seen]
         if new_matches:
@@ -281,8 +281,15 @@ def print_numbered_permit_results(results: list[PermitSearchResult]) -> None:
         print("  ".join(cell.ljust(widths[index]) for index, cell in enumerate(row)))
 
 
-def print_results(results: Iterable[AvailabilityResult]) -> None:
+def print_results(
+    results: Iterable[AvailabilityResult],
+    availability_link: str | None = None,
+    checked_at: datetime | None = None,
+) -> None:
     results = list(results)
+    checked_at = checked_at or datetime.now().astimezone()
+    print(f"Checked at: {checked_at.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+
     if not results:
         print("No targets configured.")
         return
@@ -311,3 +318,5 @@ def print_results(results: Iterable[AvailabilityResult]) -> None:
 
     available_count = sum(1 for result in results if result.available)
     print(f"\n{available_count} available target(s) found.")
+    if available_count and availability_link:
+        print(f"Open Recreation.gov: {availability_link}")

@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from passfinder.cli import main
+from passfinder.cli import main, print_results
+from passfinder.recreation import AvailabilityResult
 
 
 class FakePermitContentClient:
@@ -98,6 +100,30 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("4675342", printed)
         self.assertIn("Grand Teton National Park Backcountry Permits", printed)
+
+    def test_print_results_includes_timestamp_and_link_when_available(self):
+        result = AvailabilityResult(
+            date=date(2026, 8, 15),
+            zone_name="Granite Lower",
+            zone_id="4675342073",
+            available=True,
+            party_remaining=1,
+            people_remaining=6,
+            total_parties=1,
+            total_people=6,
+            season_type="Reservable",
+            reason="Available",
+        )
+        link = "https://www.recreation.gov/permits/4675342/registration/detailed-availability?date=2026-08-15"
+        checked_at = datetime(2026, 8, 15, 16, 30, 45, tzinfo=timezone.utc)
+
+        with patch("builtins.print") as print_mock:
+            print_results([result], link, checked_at)
+
+        printed = "\n".join(str(call.args[0]) for call in print_mock.call_args_list)
+        self.assertIn("Checked at: 2026-08-15 16:30:45 UTC", printed)
+        self.assertIn("1 available target(s) found.", printed)
+        self.assertIn(f"Open Recreation.gov: {link}", printed)
 
 
 if __name__ == "__main__":
